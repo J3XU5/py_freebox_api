@@ -47,6 +47,7 @@ class Requester:
                     return 200
                 else:
                     print("Erreur lors de la récupération du token : " + response.json()['error_code'])
+                    return -1
             else:
                 print("Connexion à la Freebox impossible\nCode d'erreur :" + str(response.status_code))
                 return -1
