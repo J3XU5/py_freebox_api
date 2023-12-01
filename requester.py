@@ -6,7 +6,7 @@ import hmac
 class Requester:
     user = ''
     password = ''
-    api_url = 'http://'
+    api_url = ''
     persoHeader = {}
 
     def initLink(self):
@@ -14,7 +14,7 @@ class Requester:
             response = requests.get('http://mafreebox.freebox.fr/api_version', timeout=5)
             if response.status_code == 200:
                 print("API version : " + response.json()['api_version'])
-                self.api_url += response.json()['api_domain'] + '/api/v4/'
+                self.api_url = 'http://mafreebox.freebox.fr/api/v4/'
 
                 data = {  # GET APP TOKEN
                     'app_id': 'freebox-api',
@@ -22,25 +22,27 @@ class Requester:
                     'app_version': '0.0.1',
                     'device_name': 'hugoravard.fr'
                 }
-                response = requests.post(self.api_url + "login/authorize/", data)
+                response = requests.post(self.api_url + "login/authorize/", json=data)
+                print(response.json())
                 app_token = response.json()['result']['app_token']
                 track_id = response.json()['result']['track_id']
 
-                while (requests.get(self.api_url + "login/authorize/" + track_id).json()['result']['status'] !=
+                while (requests.get(self.api_url + "login/authorize/" + str(track_id)).json()['result']['status'] !=
                        'granted'):
                     time.sleep(1)
 
-                challenge = requests.get(self.api_url + "login/authorize/" + track_id).json()['result']['challenge']
+                challenge = requests.get(self.api_url + "login/authorize/" + str(track_id)).json()['result'][
+                    'challenge']
                 session_token = {  # GET SESSION TOKEN
                     'app_id': 'freebox-api',
-                    'password': hmac.HMAC(app_token, challenge, 'sha1')
+                    'password': hmac.new(bytes(app_token), bytes(challenge), digestmod='sha1')
                 }
 
                 data = {
                     'app_id': 'freebox-api',
                     "X-Fbx-App-Auth": session_token
                 }
-                response = requests.post(self.api_url + "login/session/", data=data)  # Open session
+                response = requests.post(self.api_url + "login/session/", json=data)  # Open session
                 if response.json()['success'] == 'true':
                     self.persoHeader = {"X-Fbx-App-Auth": response.json()['result']['session_token']}
                     print("Les permissions pour l'application sont : " + response.json()['result']['permissions'])
